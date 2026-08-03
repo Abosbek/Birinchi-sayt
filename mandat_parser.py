@@ -1,4 +1,4 @@
-Enterimport requests
+import requests
 from bs4 import BeautifulSoup
 
 def abituriyent_malumotini_olish(abituriyent_id):
