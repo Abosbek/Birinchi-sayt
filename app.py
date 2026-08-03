@@ -1,4 +1,4 @@
-Enterfrom flask import Flask, jsonify
+from flask import Flask, jsonify
 from mandat_parser import abituriyent_malumotini_olish 
 
 app = Flask(__name__)
