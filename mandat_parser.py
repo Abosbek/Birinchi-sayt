@@ -2,43 +2,43 @@ import requests
 from bs4 import BeautifulSoup
 
 def abituriyent_malumotini_olish(abituriyent_id):
-    # Mandat saytining qidiruv manzili (joriy yil holatiga moslashuvchan)
-    url = f"https://mandat.uzbmb.uz/Home/Details/{abituriyent_id}"
-    
-    # Sayt bizning kodimizni haqiqiy foydalanuvchi deb qabul qilishi uchun sozlamalar
+    # 1-qadam: Avval Qidiruv sahifasiga ID bilan murojaat qilamiz
+    search_url = f"https://mandat.uzbmb.uz/Bakalavr?name={abituriyent_id}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "uz,en-US;q=0.9,en;q=0.8"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
     
     try:
-        # Saytga ma'lumot so'rab murojaat qilamiz (kutish vaqti 10 soniya)
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(search_url, headers=headers)
         
-        # Agar sahifa muvaffaqiyatli topshirilsa
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # DIQQAT: Mandat natijalari e'lon qilingach, saytning dizayniga qarab bu yerdagi qidiruv teglari aniqlanadi.
-            # Hozircha bazaviy qolibni qaytaramiz.
+            # Saytdagi jadvallar orasidan 'hashId' yashiringan ssilkani qidiramiz
+            link = soup.find('a', href=lambda href: href and "hashId=" in href)
             
-            natija = {
-                "status": "success",
-                "abituriyent_id": abituriyent_id,
-                "xabar": "Mandat saytiga ulanish muvaffaqiyatli amalga oshirildi!",
-                "qabul_yili": 2026,
-                "eslatma": "Natijalar chiqqach, ball va o'rin avtomatik shu yerda paydo bo'ladi."
-            }
-            return natija
-            
-        elif response.status_code == 404:
-             return {"status": "error", "message": f"{abituriyent_id} ID raqamli abituriyent topilmadi."}
+            if link:
+                # 2-qadam: Yashirin kod (hashId) topildi! Endi haqiqiy natijalar sahifasiga kiramiz
+                details_url = "https://mandat.uzbmb.uz" + link['href']
+                details_response = requests.get(details_url, headers=headers)
+                
+                if details_response.status_code == 200:
+                    details_soup = BeautifulSoup(details_response.text, 'html.parser')
+                    
+                    # Sayt to'liq ochildi! Keyingi qadamda bu yerdan ballarni sug'urib olamiz.
+                    # Hozircha muvaffaqiyatli ulanish haqida xabar beramiz.
+                    return {
+                        "status": "success",
+                        "abituriyent_id": abituriyent_id,
+                        "qabul_yili": 2026,
+                        "xabar": "Yashirin HashId topildi va saytga ulanish muvaffaqiyatli amalga oshdi!",
+                        "eslatma": f"Tizim mana bu manzildan ma'lumot o'qidi: {details_url}"
+                    }
+            else:
+                return {"status": "error", "message": f"{abituriyent_id} raqamli ID tizimdan topilmadi yoki kiritishda xato bor."}
+                
         else:
-            return {"status": "error", "message": f"Saytda vaqtinchalik muammo: Xatolik kodi {response.status_code}"}
+            return {"status": "error", "message": f"Test markazi sayti ishlamayapti: {response.status_code}"}
             
-    # Agar internet o'chib qolsa yoki mandat.uzbmb.uz sayti qotib qolsa
-    except requests.exceptions.RequestException:
-        return {"status": "error", "message": "Mandat saytiga ulanib bo'lmadi. Sayt ishlamayotgan bo'lishi mumkin."}
     except Exception as e:
-        return {"status": "error", "message": f"Kutilmagan xatolik yuz berdi: {str(e)}"}
+        return {"status": "error", "message": f"Dastur xatoligi: {str(e)}"}
